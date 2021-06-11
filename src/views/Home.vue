@@ -1,18 +1,15 @@
 <template>
   <div class="home">
-    <!-- <img alt="Vue logo" src="../assets/logo.png"> -->
-    <!-- <HelloWorld msg="Welcome to Your Vue.js App"/> -->
-
     <div>
-      <select name="" id="" v-model="optionType">
+      <select name="" id="" v-model="optionType" @change="changeOption">
         <option value="pin">PIN</option>
         <option value="state">State</option>
       </select>
     </div>
 
-        <input type="date" id="date" name="date" v-model="date" @change="formatDate">
+    <input type="date" id="date" name="date" v-model="date" @change="formatDate">
 
-    <div v-if="optionType === 'state'">
+    <div v-show="optionType === 'state'">
       <div v-if="!errorVal">
         <select @change="changeState" v-model="selectedState">
           <option v-for="state in states" :key="state" :value="state.state_id">
@@ -29,20 +26,20 @@
         {{errorVal}}
       </div>
     </div>
-    <div v-else>
+    <div v-show="optionType === 'pin'">
       <label for="pin">PIN Code: </label><input type="text" name="pin" v-model="pinCode">
     </div>
-        <!-- <input type="button" value="Get" ref="getButton" @click="getVaccinationInfo"> -->
-        <input type="button" value="Get data" ref="getButton" @click="getVaccinationInfoWeek">
-        <input type="button" value="Poll" ref="pollButton" @click="startTimer">
+        <input type="button" class="button is-primary" value="Get data" ref="getButton" @click="getVaccinationInfoWeek">
+        <button type="submit" class="button is-info" value="Poll" ref="pollButton" @click="startTimer">{{pollButtonText}}</button>
 
 
-    <div v-if="vaccInfoWeek">
+    <div v-if="processedVaccInfoWeek">
+      {{processedVaccInfoWeek}}
 
       <table border="1">
-        <tr v-for="item in vaccInfoWeek" :key="item">
-          <!-- <td> {{item.date}} </td> --> <td>
-            <!-- {{item.center_id}} :  --> <h5>{{item.name}}</h5> </td>
+        <tr v-for="item in processedVaccInfoWeek" :key="item">
+           <td>
+              <h5>{{item.name}}</h5> </td>
             <td>
               Block: {{item.block_name}} <br>
               {{item.address}}, {{item.pincode}}
@@ -50,12 +47,38 @@
                 {{item.fee_type}}
               </span>
             </td>
-          <!-- <td :style="{backgroundColor: isAvailable(item.available_capacity)}" > {{item.available_capacity}} </td>
-          <td :style="{backgroundColor: isAvailable(item.available_capacity_dose1)}"> {{item.available_capacity_dose1}} </td>
-          <td :style="{backgroundColor: isAvailable(item.available_capacity_dose2)}"> {{item.available_capacity_dose2}} </td> -->
-          <!-- <td> {{item.from}} </td> <td> {{item.to}} </td> <td> {{item.min_age_limit }} </td> <td> {{item.vaccine}} </td> -->
-          <!-- <td :style="{backgroundColor: feeType(item.fee_type)}"> {{item.fee_type}} </td> <td> {{item.fee}} </td> -->
-          <!-- <td> {{item.slots}} </td> -->
+          <td v-for="sessionItem in item.sessions" :key="sessionItem">
+            <div> <strong>{{ sessionItem.date }}</strong> </div>
+            <div> {{ sessionItem.vaccine }} </div>
+            <div>
+              <small>Age: {{sessionItem.min_age_limit }}+</small>
+              <table style="border: 1px solid black; border-collapse: collapse;">
+                <tr>
+                  <td>D1 <br>{{sessionItem.available_capacity_dose1}}</td>
+                  <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
+                  <td>D2 <br>{{sessionItem.available_capacity_dose2}}</td>
+                </tr>
+              </table>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <br><br><hr>
+
+    <div v-if="vaccInfoWeek">
+      <table border="1">
+        <tr v-for="item in vaccInfoWeek" :key="item">
+           <td>
+              <h5>{{item.name}}</h5> </td>
+            <td>
+              Block: {{item.block_name}} <br>
+              {{item.address}}, {{item.pincode}}
+              <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
+                {{item.fee_type}}
+              </span>
+            </td>
           <td v-for="sessionItem in item.sessions" :key="sessionItem">
             <div> <strong>{{ sessionItem.date }}</strong> </div>
             <div> {{ sessionItem.vaccine }} </div>
@@ -90,7 +113,7 @@
           <td> slots </td>
           </tr>
         </thead>
-        <tr v-for="item in processedInfo" :key="item">
+        <tr v-for="item in processedVaccInfo" :key="item">
           <td> {{item.date}} </td> <td>{{item.center_id}} : {{item.name}} </td><td> {{item.address}} </td> <td> {{item.block_name}} </td>
           <td> {{item.pincode}} </td>
           <td :style="{backgroundColor: isAvailable(item.available_capacity)}" > {{item.available_capacity}} </td>
@@ -133,8 +156,6 @@
 </template>
 
 <script>
-// @ is an alias to /src
-// import HelloWorld from '@/components/HelloWorld.vue'
 import axios from 'axios'
 
 export default {
@@ -156,10 +177,13 @@ export default {
       selectedDistrict: null,
       vaccInfoWeek: null,
       vaccinationInfo: null,
-      processedInfo: null,
+      processedVaccInfo: null,
+      processedVaccInfoWeek: null,
       initialCountVal: 5,
       count: this.initialCountVal,
       timer: null,
+      isPolling: false,
+      pollButtonText: "Poll"
     }
   },
   mounted() {
@@ -168,28 +192,58 @@ export default {
       this.date = `${convertedDate.getFullYear()}-${String(convertedDate.getMonth() + 1).padStart(2, 0)}-${convertedDate.getDate()}`
       this.getStates();
       if (localStorage.pin) {
-        this.pin = localStorage.pin;
+        this.pinCode = localStorage.pin;
+      }
+
+      if (localStorage.option) {
+        this.optionType = localStorage.option;
       }
     })
   },
   methods: {
-    startTimer: function() {
-      if (this.$refs.pollButton.value === "Poll") {
+    populateStoredValues() {
+      if (localStorage.state) {
+        this.selectedState = localStorage.state;
+        this.changeState();
+      }
+
+      if (localStorage.district) {
+        this.selectedDistrict = localStorage.district;
+        this.changeDistrict();
+      }
+
+      if (localStorage.pin) {
+        this.pinCode = localStorage.pin;
+      }
+
+      if (localStorage.option) {
+        this.optionType = localStorage.option;
+      }
+    },
+    changeOption() {
+      if (this.optionType) {
+        localStorage.setItem("option", this.optionType);
+      }
+      this.populateStoredValues();
+    },
+    startTimer() {
+      console.log("Poll button clicked");
+      if (this.pollButtonText === "Poll") {
         console.log("Timer started", this.count);
         this.timer = setInterval(() => this.countdown(), 1000);
-        this.resetButton = true;
-        this.$refs.pollButton.value = "Stop"
+        this.isPolling = true;
+        this.pollButtonText = "Polling... Click to stop"
       } else {
         clearInterval(this.timer);
         this.timer = null;
-        this.$refs.pollButton.value = "Poll"
+        this.pollButtonText = "Poll"
+        this.isPolling = false;
       }
 
     },
     countdown() {
       if (this.count > 0) {
         this.count--
-        console.log("Counting down: ", this.count);
       } else {
         this.count = this.initialCountVal;
         this.getVaccinationInfoWeek();
@@ -199,21 +253,17 @@ export default {
     feeType(type) {return type === 'Paid' ? 'lightpink' : 'lightgreen'},
     formatDate() {
       const convertedDate = new Date(this.date);
-      console.log(convertedDate);
       this.formattedDate = `${convertedDate.getDate()}-${convertedDate.getMonth() + 1}-${convertedDate.getFullYear()}`
-      console.log(convertedDate.getFullYear(), convertedDate.getMonth() + 1, convertedDate.getDate());
     },
     changeState() {
       localStorage.setItem('state', this.selectedState);
       this.getDistrict();
     },
     async getDistrict() {
-      console.log(this.selectedState);
       this.$refs.district.focus();
       var that = this;
       await axios.get(`https://cdn-api.co-vin.in/api/v2/admin/location/districts/${this.selectedState}`)
       .then(function (response) {
-        console.log(response.data)
         that.districts = response.data.districts
       })
       .catch(function (error) {
@@ -233,8 +283,8 @@ export default {
       var that = this;
       await axios.get("https://cdn-api.co-vin.in/api/v2/admin/location/states")
       .then(function (response) {
-        console.log(response.data)
         that.states = response.data.states
+        localStorage.setItem("states", JSON.stringify(that.states));
       })
       .catch(function (error) {
         that.errorVal = error.response.data.error
@@ -246,7 +296,10 @@ export default {
         this.changeState();
       }
     },
-    getVaccinationInfoWeek() {
+    async getVaccinationInfoWeek() {
+      if (this.pinCode) {
+        localStorage.setItem('pin', this.pinCode);
+      }
       this.formatDate();
       var that = this;
       let queryStr = null;
@@ -255,17 +308,18 @@ export default {
       } else {
         queryStr = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin?pincode=${this.pinCode}&date=${this.formattedDate}`
       }
-      axios.get(queryStr)
+
+      await axios.get(queryStr)
       .then(function (response) {
         if ('data' in response) {
           console.log(response.data)
           that.vaccInfoWeek = response.data.centers;
-          // that.vaccinationInfo = response.data.sessions
-          // that.processVaccinationInfo()
         } else {
           console.error(response)
           that.errorVal = response
         }
+
+        // that.processVaccinationInfoWeek();
       })
       .catch(function (error) {
         console.log(error);
@@ -313,6 +367,21 @@ export default {
           return item.available_capacity > 0
         });
       }
+    },
+    processVaccinationInfoWeek() {
+      if (this.vaccInfoWeek) {
+        let retObj = {};
+        this.vaccInfoWeek.forEach((center) => {
+          center.sessions.forEach((sessionInfo) => {
+              if(sessionInfo.available_capacity > 0) {
+                retObj[center.center_id] = sessionInfo
+              }
+            })
+        });
+        console.log(retObj);
+        this.processedVaccInfoWeek = retObj;
+      }
+
     }
   }
 }
