@@ -14,12 +14,12 @@
 
     <div v-if="optionType === 'state'">
       <div v-if="!errorVal">
-        <select @change="getDistrict()" v-model="selectedState">
+        <select @change="changeState" v-model="selectedState">
           <option v-for="state in states" :key="state" :value="state.state_id">
             {{state.state_name}}
           </option>
         </select>
-        <select @change="changeDistrict()" v-model="selectedDistrict" ref="district">
+        <select @change="changeDistrict" v-model="selectedDistrict" ref="district">
           <option v-for="district in districts" :key="district" :value="district.district_id">
             {{district.district_name}}
           </option>
@@ -32,10 +32,10 @@
     <div v-else>
       <label for="pin">PIN Code: </label><input type="text" name="pin" v-model="pinCode">
     </div>
-        <input type="button" value="Get" ref="getButton" @click="getVaccinationInfo">
+        <!-- <input type="button" value="Get" ref="getButton" @click="getVaccinationInfo"> -->
+        <input type="button" value="Get data" ref="getButton" @click="getVaccinationInfoWeek">
         <input type="button" value="Poll" ref="pollButton" @click="startTimer">
 
-        <input type="button" value="Get Calendar" ref="getButton" @click="getVaccinationInfoWeek">
 
     <div v-if="vaccInfoWeek">
 
@@ -44,7 +44,8 @@
           <!-- <td> {{item.date}} </td> --> <td>
             <!-- {{item.center_id}} :  --> <h5>{{item.name}}</h5> </td>
             <td>
-              {{item.block_name}}, {{item.address}}, {{item.pincode}}
+              Block: {{item.block_name}} <br>
+              {{item.address}}, {{item.pincode}}
               <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
                 {{item.fee_type}}
               </span>
@@ -68,28 +69,6 @@
                 </tr>
               </table>
             </div>
-
-              <!-- <table border="1">
-                <thead>
-                  <tr>
-                    <td>Date</td>
-                    <td> available_capacity </td> <td> available_capacity_dose1 </td> <td> available_capacity_dose2 </td>
-                  <td> from </td> <td> to </td>
-                  <td> min_age_limit  </td> <td> vaccine </td>
-                  <td> fee_type </td> <td> fee </td> <td> slots </td>
-                  </tr>
-                </thead>
-                <tr v-for="sessionItem in item.sessions" :key="sessionItem">
-                  <td> {{sessionItem.date}} </td>
-                  <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}" > {{sessionItem.available_capacity}} </td>
-                  <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity_dose1)}"> {{sessionItem.available_capacity_dose1}} </td>
-                  <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity_dose2)}"> {{sessionItem.available_capacity_dose2}} </td>
-                  <td> {{sessionItem.from}} </td> <td> {{sessionItem.to}} </td>
-                  <td> {{sessionItem.min_age_limit }} </td> <td> {{sessionItem.vaccine}} </td>
-                  <td :style="{backgroundColor: feeType(sessionItem.fee_type)}"> {{sessionItem.fee_type}} </td> <td> {{sessionItem.fee}} </td>
-                  <td> {{sessionItem.slots}} </td>
-                </tr>
-              </table> -->
           </td>
         </tr>
       </table>
@@ -188,6 +167,9 @@ export default {
       const convertedDate = new Date()
       this.date = `${convertedDate.getFullYear()}-${String(convertedDate.getMonth() + 1).padStart(2, 0)}-${convertedDate.getDate()}`
       this.getStates();
+      if (localStorage.pin) {
+        this.pin = localStorage.pin;
+      }
     })
   },
   methods: {
@@ -210,7 +192,6 @@ export default {
         console.log("Counting down: ", this.count);
       } else {
         this.count = this.initialCountVal;
-        // this.getVaccinationInfo();
         this.getVaccinationInfoWeek();
       }
     },
@@ -222,11 +203,15 @@ export default {
       this.formattedDate = `${convertedDate.getDate()}-${convertedDate.getMonth() + 1}-${convertedDate.getFullYear()}`
       console.log(convertedDate.getFullYear(), convertedDate.getMonth() + 1, convertedDate.getDate());
     },
-    getDistrict() {
+    changeState() {
+      localStorage.setItem('state', this.selectedState);
+      this.getDistrict();
+    },
+    async getDistrict() {
       console.log(this.selectedState);
       this.$refs.district.focus();
       var that = this;
-      axios.get(`https://cdn-api.co-vin.in/api/v2/admin/location/districts/${this.selectedState}`)
+      await axios.get(`https://cdn-api.co-vin.in/api/v2/admin/location/districts/${this.selectedState}`)
       .then(function (response) {
         console.log(response.data)
         that.districts = response.data.districts
@@ -234,15 +219,19 @@ export default {
       .catch(function (error) {
         that.errorVal = error.response
       });
+
+      if (localStorage.district) {
+        this.selectedDistrict = localStorage.district;
+        this.changeDistrict();
+      }
     },
     changeDistrict() {
-      this.formatDate()
-      // this.getVaccinationInfo()
-      this.getVaccinationInfoWeek()
+      localStorage.setItem('district', this.selectedDistrict);
+      this.getVaccinationInfoWeek();
     },
-    getStates() {
+    async getStates() {
       var that = this;
-      axios.get("https://cdn-api.co-vin.in/api/v2/admin/location/states")
+      await axios.get("https://cdn-api.co-vin.in/api/v2/admin/location/states")
       .then(function (response) {
         console.log(response.data)
         that.states = response.data.states
@@ -251,10 +240,22 @@ export default {
         that.errorVal = error.response.data.error
         console.log(that.errorVal);
       });
+
+      if (localStorage.state) {
+        this.selectedState = localStorage.state;
+        this.changeState();
+      }
     },
     getVaccinationInfoWeek() {
+      this.formatDate();
       var that = this;
-      axios.get(`https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=${this.selectedDistrict}&date=${this.formattedDate}`)
+      let queryStr = null;
+      if (this.optionType === 'state') {
+        queryStr = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=${this.selectedDistrict}&date=${this.formattedDate}`
+      } else {
+        queryStr = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin?pincode=${this.pinCode}&date=${this.formattedDate}`
+      }
+      axios.get(queryStr)
       .then(function (response) {
         if ('data' in response) {
           console.log(response.data)
