@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/precache-manifest.5c9a7d4e61d45759e35f5076fc2185e1.js"
+  "/precache-manifest.b06e10b60b602800c46e953698f6788e.js"
 );
 
 workbox.core.setCacheNameDetails({prefix: "billing-vue"});
