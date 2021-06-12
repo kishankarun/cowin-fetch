@@ -20,8 +20,7 @@ Select the option - **Search By**
 
 
 # Special Options
-* Fetch data automatically - Fetches the latest data every 5 seconds
-* Click again to stop automatic fetch
+* Fetch data automatically - Fetches the latest data every 5 seconds (Click again to stop automatic fetch)
 
 
 ## Project setup
