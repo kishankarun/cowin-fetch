@@ -110,33 +110,36 @@
         <tbody>
           <tr v-for="item in processedVaccInfoWeek" :key="item">
             <td>
-                <h5>{{item.name}}</h5> </td>
-              <td>
+                <h5>{{item.name}}</h5>
                 <strong>Block:</strong> {{item.block_name}} <br>
+              </td>
+              <td>
                 {{item.address}}, {{item.pincode}}
                 <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
                   {{item.fee_type}}
                 </span>
               </td>
-            <td v-for="sessionItem in item.sessions" :key="sessionItem">
-              <div> <strong>{{ sessionItem.date }}</strong> </div>
-              <div> {{ sessionItem.vaccine }} </div>
-              <div>
-                <small>Age: {{sessionItem.min_age_limit }}+</small>
-                <table border="1">
-                  <thead>
+            <template v-for="sessionItem in item.sessions" >
+              <td v-if="sessionItem.available_capacity" :key="sessionItem">
+                <div> <strong>{{ sessionItem.date }}</strong> </div>
+                <div> {{ sessionItem.vaccine }} </div>
+                <div>
+                  <small>Age: {{sessionItem.min_age_limit }}+</small>
+                  <table border="1">
+                    <thead>
+                      <tr>
+                        <th>D1</th><th>Total</th><th>D2</th>
+                      </tr>
+                    </thead>
                     <tr>
-                      <th>D1</th><th>Total</th><th>D2</th>
+                      <td>{{sessionItem.available_capacity_dose1}}</td>
+                      <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
+                      <td>{{sessionItem.available_capacity_dose2}}</td>
                     </tr>
-                  </thead>
-                  <tr>
-                    <td>{{sessionItem.available_capacity_dose1}}</td>
-                    <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
-                    <td>{{sessionItem.available_capacity_dose2}}</td>
-                  </tr>
-                </table>
-              </div>
-            </td>
+                  </table>
+                </div>
+              </td>
+            </template>
           </tr>
         </tbody>
       </table>
@@ -223,12 +226,39 @@ export default {
         this.pinCode = localStorage.pin;
       }
 
+      if (localStorage.age) {
+        this.age = localStorage.age;
+      }
+
       if (localStorage.option) {
         this.optionType = localStorage.option;
       }
     })
   },
   methods: {
+    notifyMe() {
+      // Let's check if the browser supports notifications
+      if (!("Notification" in window)) {
+        alert("This browser does not support desktop notification");
+      }
+      // Let's check whether notification permissions have already been granted
+      else if (Notification.permission === "granted") {
+        // If it's okay let's create a notification
+        new Notification("Hi there!");
+      }
+      // Otherwise, we need to ask the user for permission
+      else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(function (permission) {
+          // If the user accepts, let's create a notification
+          if (permission === "granted") {
+            new Notification("Hi there!");
+          }
+        });
+      }
+
+      // At last, if the user has denied notifications, and you
+      // want to be respectful there is no need to bother them any more.
+    },
     resetValues() {
       this.districts = null;
       this.selectedDistrict = null;
@@ -355,6 +385,10 @@ export default {
       this.errorVal = null;
       if (this.pinCode) {
         localStorage.setItem('pin', this.pinCode);
+      }
+
+      if (this.age) {
+        localStorage.setItem('age', this.age);
       }
       this.formatDate();
       var that = this;
