@@ -5,5 +5,8 @@ module.exports = {
       entry: 'src/main.js',
       title: 'CoWin Fetch',
     },
+  },
+  pwa: {
+    name: 'CoWin Fetch',
   }
 }

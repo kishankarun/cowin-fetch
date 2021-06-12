@@ -14,10 +14,10 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/precache-manifest.b06e10b60b602800c46e953698f6788e.js"
+  "/precache-manifest.5b13a8d7ec98131e8ecd87e8b5276450.js"
 );
 
-workbox.core.setCacheNameDetails({prefix: "billing-vue"});
+workbox.core.setCacheNameDetails({prefix: "cowin-fetch"});
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {

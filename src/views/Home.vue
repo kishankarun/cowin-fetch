@@ -1,79 +1,161 @@
 <template>
   <div class="home">
-    <div>
-      <select name="" id="" v-model="optionType" @change="changeOption">
-        <option value="pin">PIN</option>
-        <option value="state">State</option>
-      </select>
+    <p class="is-italic has-text-danger">* Works only in Desktop browsers and Android chrome browser.</p>
+
+    <div class="field is-grouped">
+      <p class="control">
+        <label class="label">
+          Search by:
+          <div class="select is-small">
+            <select name="option" id="" v-model="optionType" @change="changeOption">
+              <option value="">-- Select PIN or State --</option>
+              <option value="pin">PIN</option>
+              <option value="state">State</option>
+            </select>
+          </div>
+        </label>
+      </p>
     </div>
 
-    <input type="date" id="date" name="date" v-model="date" @change="formatDate">
+    <div class="field is-grouped">
+    <p class="control">
+      <label class="label">
+        From date:
+        <input type="date" id="date" name="date" v-model="date" @change="formatDate">
+      </label>
+    </p>
+    </div>
 
-    <div v-show="optionType === 'state'">
-      <div v-if="!errorVal">
-        <select @change="changeState" v-model="selectedState">
-          <option v-for="state in states" :key="state" :value="state.state_id">
-            {{state.state_name}}
-          </option>
-        </select>
-        <select @change="changeDistrict" v-model="selectedDistrict" ref="district">
-          <option v-for="district in districts" :key="district" :value="district.district_id">
-            {{district.district_name}}
-          </option>
-        </select>
-      </div>
-      <div v-else>
-        {{errorVal}}
-      </div>
+
+    <div class="field is-grouped" v-show="!errorVal && optionType === 'state'">
+      <p class="control">
+        <label class="label" for="state">
+          State:
+          <div class="select is-small">
+            <select id="state" name="state" @change="changeState" v-model="selectedState">
+              <option v-for="state in states" :key="state" :value="state.state_id">
+                {{state.state_name}}
+              </option>
+            </select>
+          </div>
+        </label>
+      </p>
+      <p class="control">
+        <label class="label" for="district">
+          District:
+          <div class="select is-small">
+            <select id="district" name="district" @change="changeDistrict" v-model="selectedDistrict" ref="district">
+              <option v-for="district in districts" :key="district" :value="district.district_id">
+                {{district.district_name}}
+              </option>
+            </select>
+          </div>
+        </label>
+      </p>
     </div>
-    <div v-show="optionType === 'pin'">
-      <label for="pin">PIN Code: </label><input type="text" name="pin" v-model="pinCode">
+
+
+    <div class="field is-grouped" v-show="optionType === 'pin'">
+      <p class="control">
+        <label class="label" for="age">
+          PIN Code:
+         <input class="is-small" type="text" name="pin" v-model="pinCode">
+        </label>
+      </p>
     </div>
+
+    <div v-if="errorVal" class="has-text-danger">
+      {{errorVal}}
+    </div>
+
+    <div class="field is-grouped">
+      <p class="control">
+        <label class="label" for="age">
+          Age limit:
+          <div class="select is-small">
+            <select name="age" id="age" v-model="age" @change="getVaccinationInfoWeek">
+              <option value="18">18+</option>
+              <option value="40">40+</option>
+              <option value="45">45+</option>
+            </select>
+          </div>
+        </label>
+      </p>
+    </div>
+
+    <div class="field is-grouped">
+      <div class="control">
         <input type="button" class="button is-primary" value="Get data" ref="getButton" @click="getVaccinationInfoWeek">
+      </div>
+      <div class="control">
         <button type="submit" class="button is-info" value="Poll" ref="pollButton" @click="startTimer">{{pollButtonText}}</button>
+      </div>
+    </div>
 
+    <h1 class="subtitle">
+      <span class="is-uppercase has-text-danger" v-if="optionType"> {{ optionType }} </span>
+      <span v-if="optionType === 'state'">
+        <span v-if="selectedState"> :  {{ getName('state') }} </span>
+        <span v-if="selectedDistrict"> and {{ getName('district') }} </span>
+      </span>
+      <span v-else>
+        <span v-if="pinCode">: {{ pinCode }}</span>
+      </span>
+    </h1>
 
-    <div v-if="processedVaccInfoWeek">
-      {{processedVaccInfoWeek}}
+    <h1 class="title">Available slots <span class="has-text-weight-bold has-text-danger" v-if="age">for {{age}}+ age group</span></h1>
 
-      <table border="1">
-        <tr v-for="item in processedVaccInfoWeek" :key="item">
-           <td>
-              <h5>{{item.name}}</h5> </td>
+    <div v-if="processedVaccInfoWeek && processedVaccInfoWeek.length > 0">
+      <table style="width: 100%; display: block; max-height: 300px; overflow-y: scroll">
+        <tbody>
+          <tr v-for="item in processedVaccInfoWeek" :key="item">
             <td>
-              Block: {{item.block_name}} <br>
-              {{item.address}}, {{item.pincode}}
-              <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
-                {{item.fee_type}}
-              </span>
+                <h5>{{item.name}}</h5> </td>
+              <td>
+                <strong>Block:</strong> {{item.block_name}} <br>
+                {{item.address}}, {{item.pincode}}
+                <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
+                  {{item.fee_type}}
+                </span>
+              </td>
+            <td v-for="sessionItem in item.sessions" :key="sessionItem">
+              <div> <strong>{{ sessionItem.date }}</strong> </div>
+              <div> {{ sessionItem.vaccine }} </div>
+              <div>
+                <small>Age: {{sessionItem.min_age_limit }}+</small>
+                <table border="1">
+                  <thead>
+                    <tr>
+                      <th>D1</th><th>Total</th><th>D2</th>
+                    </tr>
+                  </thead>
+                  <tr>
+                    <td>{{sessionItem.available_capacity_dose1}}</td>
+                    <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
+                    <td>{{sessionItem.available_capacity_dose2}}</td>
+                  </tr>
+                </table>
+              </div>
             </td>
-          <td v-for="sessionItem in item.sessions" :key="sessionItem">
-            <div> <strong>{{ sessionItem.date }}</strong> </div>
-            <div> {{ sessionItem.vaccine }} </div>
-            <div>
-              <small>Age: {{sessionItem.min_age_limit }}+</small>
-              <table style="border: 1px solid black; border-collapse: collapse;">
-                <tr>
-                  <td>D1 <br>{{sessionItem.available_capacity_dose1}}</td>
-                  <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
-                  <td>D2 <br>{{sessionItem.available_capacity_dose2}}</td>
-                </tr>
-              </table>
-            </div>
-          </td>
-        </tr>
+          </tr>
+        </tbody>
       </table>
     </div>
-
-    <br><br><hr>
+    <div v-else>
+      <h2 class="subtitle">No slots available</h2>
+    </div>
+    <br>
+    <span class="label">D1: Dose 1, D2: Dose 2</span>
+    <hr>
 
     <div v-if="vaccInfoWeek">
-      <table border="1">
+      <h1 class="title">All slots for all age groups</h1>
+      <table style="width: 100%; display: block; max-height: 300px; overflow-y: scroll">
         <tr v-for="item in vaccInfoWeek" :key="item">
            <td>
               <h5>{{item.name}}</h5> </td>
             <td>
-              Block: {{item.block_name}} <br>
+              <strong>Block:</strong> {{item.block_name}} <br>
               {{item.address}}, {{item.pincode}}
               <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
                 {{item.fee_type}}
@@ -84,9 +166,9 @@
             <div> {{ sessionItem.vaccine }} </div>
             <div>
               <small>Age: {{sessionItem.min_age_limit }}+</small>
-              <table style="border: 1px solid black; border-collapse: collapse;">
+              <table>
                 <tr>
-                  <td>D1 <br>{{sessionItem.available_capacity_dose1}}</td>
+                  <td><strong>D1</strong> <br>{{sessionItem.available_capacity_dose1}}</td>
                   <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
                   <td>D2 <br>{{sessionItem.available_capacity_dose2}}</td>
                 </tr>
@@ -96,62 +178,7 @@
         </tr>
       </table>
     </div>
-    <span v-else>
-      <span v-if="selectedDistrict">Getting info of {{selectedDistrict}}</span>
-    </span>
 
-
-
-    <!-- <div v-if="vaccinationInfo">
-      <h1>Availablility</h1>
-      <table border="1">
-        <thead>
-          <tr>
-            <td> date </td> <td>center_id : name </td><td> address </td> <td> block_name </td>
-          <td> pincode </td> <td> available_capacity </td> <td> available_capacity_dose1 </td> <td> available_capacity_dose2 </td>
-          <td> from </td> <td> to </td> <td> min_age_limit  </td> <td> vaccine </td> <td> fee_type </td> <td> fee </td>
-          <td> slots </td>
-          </tr>
-        </thead>
-        <tr v-for="item in processedVaccInfo" :key="item">
-          <td> {{item.date}} </td> <td>{{item.center_id}} : {{item.name}} </td><td> {{item.address}} </td> <td> {{item.block_name}} </td>
-          <td> {{item.pincode}} </td>
-          <td :style="{backgroundColor: isAvailable(item.available_capacity)}" > {{item.available_capacity}} </td>
-          <td :style="{backgroundColor: isAvailable(item.available_capacity_dose1)}"> {{item.available_capacity_dose1}} </td>
-          <td :style="{backgroundColor: isAvailable(item.available_capacity_dose2)}"> {{item.available_capacity_dose2}} </td>
-          <td> {{item.from}} </td> <td> {{item.to}} </td> <td> {{item.min_age_limit }} </td> <td> {{item.vaccine}} </td>
-          <td :style="{backgroundColor: feeType(item.fee_type)}"> {{item.fee_type}} </td> <td> {{item.fee}} </td>
-          <td> {{item.slots}} </td>
-        </tr>
-      </table>
-
-      <br><br>
-      <hr>
-      <h1>All data</h1>
-      <table border="1">
-        <thead>
-          <tr>
-            <td> date </td> <td>center_id : name </td><td> address </td> <td> block_name </td>
-          <td> pincode </td> <td> available_capacity </td> <td> available_capacity_dose1 </td> <td> available_capacity_dose2 </td>
-          <td> from </td> <td> to </td> <td> min_age_limit  </td> <td> vaccine </td> <td> fee_type </td> <td> fee </td>
-          <td> slots </td>
-          </tr>
-        </thead>
-        <tr v-for="item in vaccinationInfo" :key="item">
-          <td> {{item.date}} </td> <td>{{item.center_id}} : {{item.name}} </td><td> {{item.address}} </td> <td> {{item.block_name}} </td>
-          <td> {{item.pincode}} </td>
-          <td :style="{backgroundColor: isAvailable(item.available_capacity)}" > {{item.available_capacity}} </td>
-          <td :style="{backgroundColor: isAvailable(item.available_capacity_dose1)}"> {{item.available_capacity_dose1}} </td>
-          <td :style="{backgroundColor: isAvailable(item.available_capacity_dose2)}"> {{item.available_capacity_dose2}} </td>
-          <td> {{item.from}} </td> <td> {{item.to}} </td> <td> {{item.min_age_limit }} </td> <td> {{item.vaccine}} </td>
-          <td :style="{backgroundColor: feeType(item.fee_type)}"> {{item.fee_type}} </td> <td> {{item.fee}} </td>
-          <td> {{item.slots}} </td>
-        </tr>
-      </table>
-    </div>
-    <span v-else>
-      <span v-if="selectedDistrict">Getting info of {{selectedDistrict}}</span>
-    </span> -->
   </div>
 </template>
 
@@ -161,11 +188,11 @@ import axios from 'axios'
 export default {
   name: 'Home',
   components: {
-    // HelloWorld
   },
   data() {
     return {
-      optionType: 'state',
+      optionType: '',
+      age: 18,
       date: null,
       formattedDate: null,
       datePickerDate: null,
@@ -183,14 +210,15 @@ export default {
       count: this.initialCountVal,
       timer: null,
       isPolling: false,
-      pollButtonText: "Poll"
+      pollButtonText: "Get data automatically"
     }
   },
   mounted() {
     this.$nextTick(function () {
       const convertedDate = new Date()
       this.date = `${convertedDate.getFullYear()}-${String(convertedDate.getMonth() + 1).padStart(2, 0)}-${convertedDate.getDate()}`
-      this.getStates();
+      this.getStates('mounted');
+
       if (localStorage.pin) {
         this.pinCode = localStorage.pin;
       }
@@ -201,6 +229,12 @@ export default {
     })
   },
   methods: {
+    resetValues() {
+      this.districts = null;
+      this.selectedDistrict = null;
+      this.processedVaccInfoWeek = null;
+      this.vaccInfoWeek = null;
+    },
     populateStoredValues() {
       if (localStorage.state) {
         this.selectedState = localStorage.state;
@@ -221,6 +255,7 @@ export default {
       }
     },
     changeOption() {
+      this.errorVal = null;
       if (this.optionType) {
         localStorage.setItem("option", this.optionType);
       }
@@ -228,22 +263,22 @@ export default {
     },
     startTimer() {
       console.log("Poll button clicked");
-      if (this.pollButtonText === "Poll") {
-        console.log("Timer started", this.count);
+      if (this.pollButtonText === "Get data automatically") {
+        console.log("Timer started");
         this.timer = setInterval(() => this.countdown(), 1000);
         this.isPolling = true;
-        this.pollButtonText = "Polling... Click to stop"
+        this.pollButtonText = `Getting data... Click to stop`
       } else {
         clearInterval(this.timer);
         this.timer = null;
-        this.pollButtonText = "Poll"
+        this.pollButtonText = "Get data automatically"
         this.isPolling = false;
       }
-
     },
     countdown() {
       if (this.count > 0) {
         this.count--
+        this.pollButtonText = `Getting data in ${this.count}... Click to stop`
       } else {
         this.count = this.initialCountVal;
         this.getVaccinationInfoWeek();
@@ -255,12 +290,28 @@ export default {
       const convertedDate = new Date(this.date);
       this.formattedDate = `${convertedDate.getDate()}-${convertedDate.getMonth() + 1}-${convertedDate.getFullYear()}`
     },
-    changeState() {
-      localStorage.setItem('state', this.selectedState);
-      this.getDistrict();
+    getName(item) {
+      var arrayList, selectedItem, idKey = `${item}_id`, nameKey = `${item}_name`;
+      if (item === 'state') {
+        arrayList = this.states;
+        selectedItem = this.selectedState;
+      } else {
+        arrayList = this.districts;
+        selectedItem = this.selectedDistrict;
+      }
+
+      try {
+        return arrayList.find(x => x[idKey].toString() === selectedItem.toString())[nameKey];
+      } catch (error) {
+        return null;
+      }
     },
-    async getDistrict() {
-      this.$refs.district.focus();
+    changeState(event) {
+      this.resetValues();
+      localStorage.setItem('state', this.selectedState);
+      this.getDistricts(event);
+    },
+    async getDistricts(event) {
       var that = this;
       await axios.get(`https://cdn-api.co-vin.in/api/v2/admin/location/districts/${this.selectedState}`)
       .then(function (response) {
@@ -270,16 +321,20 @@ export default {
         that.errorVal = error.response
       });
 
+      localStorage.setItem("districts", JSON.stringify(that.districts));
+
       if (localStorage.district) {
         this.selectedDistrict = localStorage.district;
-        this.changeDistrict();
+        this.changeDistrict(event);
       }
     },
-    changeDistrict() {
-      localStorage.setItem('district', this.selectedDistrict);
-      this.getVaccinationInfoWeek();
+    changeDistrict(event) {
+      if ((event === 'mounted') || ((event.type === 'change' && event.target.id === 'district') )) {
+        localStorage.setItem('district', this.selectedDistrict);
+        this.getVaccinationInfoWeek();
+      }
     },
-    async getStates() {
+    async getStates(event) {
       var that = this;
       await axios.get("https://cdn-api.co-vin.in/api/v2/admin/location/states")
       .then(function (response) {
@@ -293,10 +348,11 @@ export default {
 
       if (localStorage.state) {
         this.selectedState = localStorage.state;
-        this.changeState();
+        this.changeState(event);
       }
     },
     async getVaccinationInfoWeek() {
+      this.errorVal = null;
       if (this.pinCode) {
         localStorage.setItem('pin', this.pinCode);
       }
@@ -312,14 +368,13 @@ export default {
       await axios.get(queryStr)
       .then(function (response) {
         if ('data' in response) {
-          console.log(response.data)
           that.vaccInfoWeek = response.data.centers;
         } else {
           console.error(response)
           that.errorVal = response
         }
 
-        // that.processVaccinationInfoWeek();
+        that.processVaccinationInfoWeek();
       })
       .catch(function (error) {
         console.log(error);
@@ -330,6 +385,7 @@ export default {
       });
     },
     getVaccinationInfo() {
+      this.errorVal = null;
       this.vaccinationInfo = null
 
       var that = this;
@@ -340,11 +396,9 @@ export default {
         queryStr = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByPin?pincode=${this.pinCode}&date=${this.formattedDate}`
       }
 
-      console.log(queryStr);
       axios.get(queryStr)
       .then(function (response) {
         if ('data' in response) {
-          console.log(response.data)
           that.vaccinationInfo = response.data.sessions
           that.processVaccinationInfo()
         } else {
@@ -369,17 +423,19 @@ export default {
       }
     },
     processVaccinationInfoWeek() {
+      var that = this;
       if (this.vaccInfoWeek) {
-        let retObj = {};
-        this.vaccInfoWeek.forEach((center) => {
-          center.sessions.forEach((sessionInfo) => {
-              if(sessionInfo.available_capacity > 0) {
-                retObj[center.center_id] = sessionInfo
+        this.processedVaccInfoWeek = this.vaccInfoWeek.filter((center) => {
+          var sessInfo =  center.sessions.filter((sessionInfo) => {
+              if(sessionInfo.available_capacity > 0 && sessionInfo.min_age_limit.toString() === that.age.toString()) {
+                return true;
+              } else {
+                return false;
               }
             })
+
+            return (sessInfo.length > 0)
         });
-        console.log(retObj);
-        this.processedVaccInfoWeek = retObj;
       }
 
     }
@@ -388,7 +444,11 @@ export default {
 </script>
 
 <style scoped>
-table, td, th {
+table {
+  text-align: center;
+}
+
+td, th {
   border: 1px solid black;
   border-collapse: collapse;
   margin: 5px;
