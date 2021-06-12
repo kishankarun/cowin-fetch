@@ -1,6 +1,8 @@
 # CoWin Fetch
 A very user friendly app to fetch the latest COVID-19 vaccination information from CoWin website
 
+Demo: https://cowin-fetch.herokuapp.com/#/
+
 ![image](https://user-images.githubusercontent.com/323202/121776083-a1893480-cba8-11eb-93a7-905fdedee3c8.png)
 
 
