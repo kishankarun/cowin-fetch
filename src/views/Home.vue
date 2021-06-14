@@ -1,7 +1,5 @@
 <template>
   <div class="home">
-    <p class="is-italic has-text-danger">* Works only in Desktop browsers and Android chrome browser.</p>
-
     <div class="field is-grouped">
       <p class="control">
         <label class="label">
@@ -27,31 +25,36 @@
     </div>
 
 
-    <div class="field is-grouped" v-show="!errorVal && optionType === 'state'">
-      <p class="control">
-        <label class="label" for="state">
-          State:
-          <div class="select is-small">
-            <select id="state" name="state" @change="changeState" v-model="selectedState">
-              <option v-for="state in states" :key="state" :value="state.state_id">
-                {{state.state_name}}
-              </option>
-            </select>
-          </div>
-        </label>
-      </p>
-      <p class="control">
-        <label class="label" for="district">
-          District:
-          <div class="select is-small">
-            <select id="district" name="district" @change="changeDistrict" v-model="selectedDistrict" ref="district">
-              <option v-for="district in districts" :key="district" :value="district.district_id">
-                {{district.district_name}}
-              </option>
-            </select>
-          </div>
-        </label>
-      </p>
+    <div v-show="!errorVal && optionType === 'state'">
+      <div class="field is-grouped">
+        <p class="control">
+          <label class="label" for="state">
+            State:
+            <div class="select is-small">
+              <select id="state" name="state" @change="changeState" v-model="selectedState">
+                <option v-for="state in states" :key="state" :value="state.state_id">
+                  {{state.state_name}}
+                </option>
+              </select>
+            </div>
+          </label>
+        </p>
+      </div>
+
+      <div class="field is-grouped">
+        <p class="control">
+          <label class="label" for="district">
+            District:
+            <div class="select is-small">
+              <select id="district" name="district" @change="changeDistrict" v-model="selectedDistrict" ref="district">
+                <option v-for="district in districts" :key="district" :value="district.district_id">
+                  {{district.district_name}}
+                </option>
+              </select>
+            </div>
+          </label>
+        </p>
+      </div>
     </div>
 
 
@@ -68,7 +71,8 @@
       {{errorVal}}
     </div>
 
-    <div class="field is-grouped">
+
+    <div class="field is-grouped mt-3">
       <p class="control">
         <label class="label" for="age">
           Age limit:
@@ -85,101 +89,40 @@
 
     <div class="field is-grouped">
       <div class="control">
-        <input type="button" class="button is-primary" value="Get data" ref="getButton" @click="getVaccinationInfoWeek">
+        <input type="button" class="button is-primary is-small is-rounded" value="Get data" ref="getButton" @click="getVaccinationInfoWeek">
       </div>
       <div class="control">
-        <button type="submit" class="button is-info" value="Poll" ref="pollButton" @click="startTimer">{{pollButtonText}}</button>
+        <button type="submit" class="button is-info is-small is-rounded" value="Poll" ref="pollButton" @click="startTimer">{{pollButtonText}}</button>
       </div>
     </div>
 
-    <h1 class="subtitle">
+    <div class="has-text-weight-bold">
       <span class="is-uppercase has-text-danger" v-if="optionType"> {{ optionType }} </span>
       <span v-if="optionType === 'state'">
-        <span v-if="selectedState"> :  {{ getName('state') }} </span>
-        <span v-if="selectedDistrict"> and {{ getName('district') }} </span>
+        <span v-if="selectedState"> :  {{ getName('state') }} </span> and
+        <span v-if="selectedDistrict"> {{ getName('district') }} </span>
       </span>
       <span v-else>
         <span v-if="pinCode">: {{ pinCode }}</span>
       </span>
-    </h1>
+    </div>
 
-    <h1 class="title">Available slots <span class="has-text-weight-bold has-text-danger" v-if="age">for {{age}}+ age group</span></h1>
+    <h1 class="is-size-5 has-text-weight-bold">Available slots <span class="has-text-weight-bold has-text-danger" v-if="age">for {{age}}+ age group</span></h1>
 
     <div v-if="processedVaccInfoWeek && processedVaccInfoWeek.length > 0">
-      <table style="width: 100%; display: block; max-height: 300px; overflow-y: scroll">
-        <tbody>
-          <tr v-for="item in processedVaccInfoWeek" :key="item">
-            <td>
-                <h5>{{item.name}}</h5>
-                <strong>Block:</strong> {{item.block_name}} <br>
-              </td>
-              <td>
-                {{item.address}}, {{item.pincode}}
-                <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
-                  {{item.fee_type}}
-                </span>
-              </td>
-            <template v-for="sessionItem in item.sessions" >
-              <td v-if="sessionItem.available_capacity" :key="sessionItem">
-                <div> <strong>{{ sessionItem.date }}</strong> </div>
-                <div> {{ sessionItem.vaccine }} </div>
-                <div>
-                  <small>Age: {{sessionItem.min_age_limit }}+</small>
-                  <table border="1">
-                    <thead>
-                      <tr>
-                        <th>D1</th><th>Total</th><th>D2</th>
-                      </tr>
-                    </thead>
-                    <tr>
-                      <td>{{sessionItem.available_capacity_dose1}}</td>
-                      <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
-                      <td>{{sessionItem.available_capacity_dose2}}</td>
-                    </tr>
-                  </table>
-                </div>
-              </td>
-            </template>
-          </tr>
-        </tbody>
-      </table>
+      <InfoTable :vaccinationInfo="processedVaccInfoWeek"></InfoTable>
     </div>
     <div v-else>
-      <h2 class="subtitle">No slots available</h2>
+      <div class="has-background-danger-light">- No slots available -</div>
     </div>
     <br>
     <span class="label">D1: Dose 1, D2: Dose 2</span>
+
     <hr>
 
     <div v-if="vaccInfoWeek">
-      <h1 class="title">All slots for all age groups</h1>
-      <table style="width: 100%; display: block; max-height: 300px; overflow-y: scroll">
-        <tr v-for="item in vaccInfoWeek" :key="item">
-           <td>
-              <h5>{{item.name}}</h5> </td>
-            <td>
-              <strong>Block:</strong> {{item.block_name}} <br>
-              {{item.address}}, {{item.pincode}}
-              <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
-                {{item.fee_type}}
-              </span>
-            </td>
-          <td v-for="sessionItem in item.sessions" :key="sessionItem">
-            <div> <strong>{{ sessionItem.date }}</strong> </div>
-            <div> {{ sessionItem.vaccine }} </div>
-            <div>
-              <small>Age: {{sessionItem.min_age_limit }}+</small>
-              <table>
-                <tr>
-                  <td><strong>D1</strong> <br>{{sessionItem.available_capacity_dose1}}</td>
-                  <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
-                  <td>D2 <br>{{sessionItem.available_capacity_dose2}}</td>
-                </tr>
-              </table>
-            </div>
-          </td>
-        </tr>
-      </table>
+      <h1 class="is-size-5 has-text-weight-bold">All slots for all age groups</h1>
+      <InfoTable :vaccinationInfo="vaccInfoWeek"></InfoTable>
     </div>
 
   </div>
@@ -187,10 +130,12 @@
 
 <script>
 import axios from 'axios'
+import InfoTable from '../components/InfoTable.vue';
 
 export default {
   name: 'Home',
   components: {
+    InfoTable
   },
   data() {
     return {
@@ -266,14 +211,16 @@ export default {
       this.vaccInfoWeek = null;
     },
     populateStoredValues() {
-      if (localStorage.state) {
-        this.selectedState = localStorage.state;
-        this.changeState();
-      }
+      if (this.optionType === 'state') {
+        if (localStorage.state) {
+          this.selectedState = localStorage.state;
+          this.changeState();
+        }
 
-      if (localStorage.district) {
-        this.selectedDistrict = localStorage.district;
-        this.changeDistrict();
+        if (localStorage.district) {
+          this.selectedDistrict = localStorage.district;
+          this.changeDistrict();
+        }
       }
 
       if (localStorage.pin) {
@@ -314,7 +261,6 @@ export default {
         this.getVaccinationInfoWeek();
       }
     },
-    isAvailable(availability) {return availability > 0 ? 'lightgreen' : 'lightpink'},
     feeType(type) {return type === 'Paid' ? 'lightpink' : 'lightgreen'},
     formatDate() {
       const convertedDate = new Date(this.date);
@@ -359,9 +305,11 @@ export default {
       }
     },
     changeDistrict(event) {
-      if ((event === 'mounted') || ((event.type === 'change' && event.target.id === 'district') )) {
-        localStorage.setItem('district', this.selectedDistrict);
-        this.getVaccinationInfoWeek();
+      if (event) {
+        if ((event === 'mounted') || ((event !== 'mounted') && (event.type === 'change' && event.target.id === 'district') )) {
+          localStorage.setItem('district', this.selectedDistrict);
+          this.getVaccinationInfoWeek();
+        }
       }
     },
     async getStates(event) {
@@ -481,13 +429,13 @@ export default {
 table {
   text-align: center;
 }
-
+/*
 td, th {
   border: 1px solid black;
   border-collapse: collapse;
   margin: 5px;
   padding: 5px;
-}
+} */
 
 
 </style>
