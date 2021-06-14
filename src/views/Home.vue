@@ -85,14 +85,23 @@
           </div>
         </label>
       </p>
+      <p class="control">
+        <label class="checkbox">
+          <input type="checkbox" v-model="notify.voice">
+          Enable voice
+        </label>
+      </p>
     </div>
 
     <div class="field is-grouped">
       <div class="control">
-        <input type="button" class="button is-primary is-small is-rounded" value="Get data" ref="getButton" @click="getVaccinationInfoWeek">
+        <input type="button" class="button is-primary is-small is-rounded" value="Get data" ref="getButton" @click="speak(true); getVaccinationInfoWeek()">
       </div>
       <div class="control">
         <button type="submit" class="button is-info is-small is-rounded" value="Poll" ref="pollButton" @click="startTimer">{{pollButtonText}}</button>
+      </div>
+      <div>
+        <a href="https://www.cowin.gov.in/home" target="_blank" class="button is-light is-link is-small is-rounded">Book in CoWin</a>
       </div>
     </div>
 
@@ -110,7 +119,7 @@
     <h1 class="is-size-5 has-text-weight-bold">Available slots <span class="has-text-weight-bold has-text-danger" v-if="age">for {{age}}+ age group</span></h1>
 
     <div v-if="processedVaccInfoWeek && processedVaccInfoWeek.length > 0">
-      <InfoTable :vaccinationInfo="processedVaccInfoWeek"></InfoTable>
+      <InfoTable :vaccinationInfo="processedVaccInfoWeek" :isFiltered="true"></InfoTable>
     </div>
     <div v-else>
       <div class="has-background-danger-light">- No slots available -</div>
@@ -122,7 +131,7 @@
 
     <div v-if="vaccInfoWeek">
       <h1 class="is-size-5 has-text-weight-bold">All slots for all age groups</h1>
-      <InfoTable :vaccinationInfo="vaccInfoWeek"></InfoTable>
+      <InfoTable :vaccinationInfo="vaccInfoWeek" :isFiltered="false"></InfoTable>
     </div>
 
   </div>
@@ -158,7 +167,13 @@ export default {
       count: this.initialCountVal,
       timer: null,
       isPolling: false,
-      pollButtonText: "Get data automatically"
+      pollButtonText: "Get data automatically",
+      textToSpeak: "Available in ",
+      speakMsg: null,
+      notify: {
+        voice: true,
+        popup: false
+      },
     }
   },
   mounted() {
@@ -166,6 +181,10 @@ export default {
       const convertedDate = new Date()
       this.date = `${convertedDate.getFullYear()}-${String(convertedDate.getMonth() + 1).padStart(2, 0)}-${convertedDate.getDate()}`
       this.getStates('mounted');
+
+      if (this.notify.voice) {
+        localStorage.setItem("voiceEnabled", this.notify.voice)
+      }
 
       if (localStorage.pin) {
         this.pinCode = localStorage.pin;
@@ -178,10 +197,21 @@ export default {
       if (localStorage.option) {
         this.optionType = localStorage.option;
       }
+
+      if (localStorage.voiceEnabled) {
+        this.notify.voice = localStorage.voiceEnabled;
+      }
+
+      if ('speechSynthesis' in window && this.notify.voice) {
+      // Synthesis support. Make your web apps talk!
+        this.speakMsg = new SpeechSynthesisUtterance();
+        this.speakMsg.lang = 'hi';
+      }
     })
   },
   methods: {
     notifyMe() {
+      var that = this;
       // Let's check if the browser supports notifications
       if (!("Notification" in window)) {
         alert("This browser does not support desktop notification");
@@ -189,20 +219,20 @@ export default {
       // Let's check whether notification permissions have already been granted
       else if (Notification.permission === "granted") {
         // If it's okay let's create a notification
-        new Notification("Hi there!");
+        new Notification(that.textToSpeak);
       }
       // Otherwise, we need to ask the user for permission
       else if (Notification.permission !== "denied") {
         Notification.requestPermission().then(function (permission) {
           // If the user accepts, let's create a notification
           if (permission === "granted") {
-            new Notification("Hi there!");
+            new Notification(that.textToSpeak);
           }
         });
       }
-
-      // At last, if the user has denied notifications, and you
-      // want to be respectful there is no need to bother them any more.
+    },
+    speak(flag) {
+      (this.speakMsg && flag) ? speechSynthesis.speak(this.speakMsg) : speechSynthesis.cancel();
     },
     resetValues() {
       this.districts = null;
@@ -250,14 +280,21 @@ export default {
         this.timer = null;
         this.pollButtonText = "Get data automatically"
         this.isPolling = false;
+        if (this.notify.voice) {
+          this.speak(false);
+        }
       }
     },
     countdown() {
       if (this.count > 0) {
         this.count--
+        console.log("Still counting...");
         this.pollButtonText = `Getting data in ${this.count}... Click to stop`
       } else {
         this.count = this.initialCountVal;
+        if (this.notify.voice) {
+          this.speak(true);
+        }
         this.getVaccinationInfoWeek();
       }
     },
@@ -406,10 +443,12 @@ export default {
     },
     processVaccinationInfoWeek() {
       var that = this;
+      var availableCenters = [];
       if (this.vaccInfoWeek) {
         this.processedVaccInfoWeek = this.vaccInfoWeek.filter((center) => {
           var sessInfo =  center.sessions.filter((sessionInfo) => {
               if(sessionInfo.available_capacity > 0 && sessionInfo.min_age_limit.toString() === that.age.toString()) {
+                availableCenters.push(center.name);
                 return true;
               } else {
                 return false;
@@ -420,6 +459,11 @@ export default {
         });
       }
 
+      availableCenters = [...new Set(availableCenters)];
+      let availableText = availableCenters.length > 0 ? "Vaccination available in " + availableCenters[0] + (availableCenters.length > 1 ? ` and ${availableCenters.length - 1} other centers` : "") : "";
+      console.log(availableText);
+      this.textToSpeak = availableText;
+      if(this.speakMsg) this.speakMsg.text = availableText;
     }
   }
 }
@@ -429,13 +473,5 @@ export default {
 table {
   text-align: center;
 }
-/*
-td, th {
-  border: 1px solid black;
-  border-collapse: collapse;
-  margin: 5px;
-  padding: 5px;
-} */
-
 
 </style>
