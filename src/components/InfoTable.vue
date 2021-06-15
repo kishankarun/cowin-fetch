@@ -10,26 +10,11 @@
               </span>
           </td>
           <template v-for="sessionItem in item.sessions" >
-            <!-- {{sessionItem}} -->
-            <td v-if="!isFiltered" :key="sessionItem.session_id">
+            <td v-if="displayCondition(sessionItem)" :key="sessionItem.session_id">
               <div> <strong>{{ sessionItem.date }}</strong> </div>
               <div> {{ sessionItem.vaccine }} </div>
               <div>
-                <small>Age: {{sessionItem.min_age_limit }}+</small>
-                <table>
-                  <tr>
-                    <td><strong>D1 </strong> <br>{{sessionItem.available_capacity_dose1}}</td>
-                    <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
-                    <td><strong>D2 </strong> <br>{{sessionItem.available_capacity_dose2}}</td>
-                  </tr>
-                </table>
-              </div>
-            </td>
-            <td v-else-if="isFiltered && sessionItem.available_capacity > 0" :key="sessionItem.session_id">
-              <div> <strong>{{ sessionItem.date }}</strong> </div>
-              <div> {{ sessionItem.vaccine }} </div>
-              <div>
-                <small>Age: {{sessionItem.min_age_limit }}+</small>
+                <small>Age: {{ageRange[sessionItem.min_age_limit.toString()]}} </small>
                 <table>
                   <tr>
                     <td><strong>D1 </strong> <br>{{sessionItem.available_capacity_dose1}}</td>
@@ -50,10 +35,29 @@ export default {
   name: 'InfoTable',
   props: {
     vaccinationInfo: Object,
-    isFiltered: Boolean
+    isFiltered: Boolean,
+    selectedAge: String,
+    ageRange: Object,
+    selectedVaccine: String,
+    selectedDose: String
+  },
+  data() {
+    return {
+    }
+  },
+  mounted() {
   },
   methods: {
     isAvailable(availability) {return availability > 0 ? 'lightgreen' : 'lightpink'},
+    ageFilter(ageLimit) {
+      return (this.selectedAge === "any") ? true : this.selectedAge.toString() === ageLimit.toString();
+    },
+    displayCondition(info) {
+      return (!this.isFiltered)
+              || (this.isFiltered
+                  && (info.available_capacity > 0) && this.ageFilter(info.min_age_limit)
+                  && (info.vaccine === this.selectedVaccine || this.selectedVaccine === 'any')     )
+    },
   }
 }
 </script>

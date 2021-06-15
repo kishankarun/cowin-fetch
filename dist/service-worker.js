@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/precache-manifest.6a87cc0b4f2355da2e0c11d9af7da92c.js"
+  "/precache-manifest.a135c8a67b2b214ebcbaf38eee724859.js"
 );
 
 workbox.core.setCacheNameDetails({prefix: "cowin-fetch"});

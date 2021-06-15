@@ -25,35 +25,38 @@
     </div>
 
 
-    <div v-show="!errorVal && optionType === 'state'">
-      <div class="field is-grouped">
-        <p class="control">
-          <label class="label" for="state">
-            State:
-            <div class="select is-small">
-              <select id="state" name="state" @change="changeState" v-model="selectedState">
-                <option v-for="state in states" :key="state" :value="state.state_id">
-                  {{state.state_name}}
-                </option>
-              </select>
-            </div>
-          </label>
-        </p>
+    <div class="columns" v-show="!errorVal && optionType === 'state'">
+      <div class="column is-one-quarter">
+        <div class="field is-grouped">
+          <p class="control">
+            <label class="label" for="state">
+              State:
+              <div class="select is-small">
+                <select id="state" name="state" @change="changeState" v-model="selectedState">
+                  <option v-for="state in states" :key="state" :value="state.state_id">
+                    {{state.state_name}}
+                  </option>
+                </select>
+              </div>
+            </label>
+          </p>
+        </div>
       </div>
-
-      <div class="field is-grouped">
-        <p class="control">
-          <label class="label" for="district">
-            District:
-            <div class="select is-small">
-              <select id="district" name="district" @change="changeDistrict" v-model="selectedDistrict" ref="district">
-                <option v-for="district in districts" :key="district" :value="district.district_id">
-                  {{district.district_name}}
-                </option>
-              </select>
-            </div>
-          </label>
-        </p>
+      <div class="column is-three-quarters">
+        <div class="field is-grouped">
+          <p class="control">
+            <label class="label" for="district">
+              District:
+              <div class="select is-small">
+                <select id="district" name="district" @change="changeDistrict" v-model="selectedDistrict" ref="district">
+                  <option v-for="district in districts" :key="district" :value="district.district_id">
+                    {{district.district_name}}
+                  </option>
+                </select>
+              </div>
+            </label>
+          </p>
+        </div>
       </div>
     </div>
 
@@ -67,8 +70,36 @@
       </p>
     </div>
 
-    <div v-if="errorVal" class="has-text-danger">
-      {{errorVal}}
+    <div v-if="errorVal" class="has-text-danger card">
+      <div v-html="errorVal"></div>
+    </div>
+
+
+    <div class="field is-grouped">
+      <p class="control">
+        <label class="label" for="vaccineType">
+          Vaccine:
+          <div class="select is-small">
+            <select name="vaccineType" id="vaccineType" v-model="vaccineType" @change="getVaccinationInfoWeek">
+              <option value="any">Any</option>
+              <option value="COVISHIELD">COVISHIELD</option>
+              <option value="COVAXIN">COVAXIN</option>
+            </select>
+          </div>
+        </label>
+      </p>
+      <p class="control">
+        <label class="label" for="dose">
+          Dose:
+          <div class="select is-small">
+            <select name="dose" id="dose" v-model="dose" @change="getVaccinationInfoWeek">
+              <option value="all">All</option>
+              <option value="D1">1st Dose - D1</option>
+              <option value="D2">2nd Dose - D2</option>
+            </select>
+          </div>
+        </label>
+      </p>
     </div>
 
 
@@ -78,8 +109,9 @@
           Age limit:
           <div class="select is-small">
             <select name="age" id="age" v-model="age" @change="getVaccinationInfoWeek">
-              <option value="18">18+</option>
-              <option value="40">40+</option>
+              <option value="any">Any</option>
+              <option value="18">18-39 (18+)</option>
+              <option value="40">40-44 (40+)</option>
               <option value="45">45+</option>
             </select>
           </div>
@@ -88,7 +120,7 @@
       <p class="control">
         <label class="checkbox">
           <input type="checkbox" v-model="notify.voice">
-          Enable voice
+          Voice notify
         </label>
       </p>
     </div>
@@ -105,24 +137,32 @@
       </div>
     </div>
 
-    <div class="has-text-weight-bold">
-      <span class="is-uppercase has-text-danger" v-if="optionType"> {{ optionType }} </span>
-      <span v-if="optionType === 'state'">
-        <span v-if="selectedState"> :  {{ getName('state') }} </span> and
-        <span v-if="selectedDistrict"> {{ getName('district') }} </span>
-      </span>
-      <span v-else>
-        <span v-if="pinCode">: {{ pinCode }}</span>
-      </span>
-    </div>
 
-    <h1 class="is-size-5 has-text-weight-bold">Available slots <span class="has-text-weight-bold has-text-danger" v-if="age">for {{age}}+ age group</span></h1>
+    <div class="columns is-gapless">
+      <div class="column is-one-quarter">
+        <span class="has-text-weight-bold is-uppercase has-text-danger" v-if="optionType"> {{ optionType }} </span>
+        <span v-if="optionType === 'state'"> :
+          <span class="has-text-weight-bold has-text-danger" v-if="selectedState"> {{ getName('state') }} </span> and
+          <span class="has-text-weight-bold has-text-danger" v-if="selectedDistrict"> {{ getName('district') }} </span>
+        </span>
+        <span v-else>
+          <span v-if="pinCode">: {{ pinCode }}</span>
+        </span>
+      </div>
+      <div class="column is-offset-8">
+        For
+        Age [<span class="has-text-weight-bold has-text-danger" v-if="age"> {{ageRange[age]}} </span>]
+        Vaccine [<span class="has-text-weight-bold has-text-danger" v-if="vaccineType"> {{vaccineType}} </span>]
+        Dose [<span class="has-text-weight-bold has-text-danger" v-if="dose"> {{dose}} </span>]
+      </div>
+    </div>
 
     <div v-if="processedVaccInfoWeek && processedVaccInfoWeek.length > 0">
-      <InfoTable :vaccinationInfo="processedVaccInfoWeek" :isFiltered="true"></InfoTable>
+      <div class="is-size-6 has-text-weight-bold has-background-success" v-if="textToSpeak">{{textToSpeak}}</div>
+      <InfoTable :vaccinationInfo="processedVaccInfoWeek" :isFiltered="true" :ageRange="ageRange" :selectedAge="age" :selectedVaccine="vaccineType" :selectedDose="dose"></InfoTable>
     </div>
     <div v-else>
-      <div class="has-background-danger-light">- No slots available -</div>
+      <div class="is-size-6 has-text-weight-bold has-background-danger">- No slots available -</div>
     </div>
     <br>
     <span class="label">D1: Dose 1, D2: Dose 2</span>
@@ -131,7 +171,7 @@
 
     <div v-if="vaccInfoWeek">
       <h1 class="is-size-5 has-text-weight-bold">All slots for all age groups</h1>
-      <InfoTable :vaccinationInfo="vaccInfoWeek" :isFiltered="false"></InfoTable>
+      <InfoTable :vaccinationInfo="vaccInfoWeek" :isFiltered="false" :ageRange="ageRange" ></InfoTable>
     </div>
 
   </div>
@@ -150,6 +190,14 @@ export default {
     return {
       optionType: '',
       age: 18,
+      ageRange: {
+        '18': "18-39",
+        '40': "40-44",
+        '45': "45+",
+        'any': 'all'
+      },
+      vaccineType: 'any',
+      dose: 'all',
       date: null,
       formattedDate: null,
       datePickerDate: null,
@@ -192,6 +240,14 @@ export default {
 
       if (localStorage.age) {
         this.age = localStorage.age;
+      }
+
+      if (localStorage.dose) {
+        this.dose = localStorage.dose;
+      }
+
+      if (localStorage.vaccine) {
+        this.vaccineType = localStorage.vaccine;
       }
 
       if (localStorage.option) {
@@ -357,7 +413,7 @@ export default {
         localStorage.setItem("states", JSON.stringify(that.states));
       })
       .catch(function (error) {
-        that.errorVal = error.response.data.error
+        that.errorVal = error.response.error
         console.log(that.errorVal);
       });
 
@@ -375,6 +431,15 @@ export default {
       if (this.age) {
         localStorage.setItem('age', this.age);
       }
+
+      if (this.dose) {
+        localStorage.setItem('dose', this.dose)
+      }
+
+      if (this.vaccineType) {
+        localStorage.setItem('vaccine', this.vaccineType)
+      }
+
       this.formatDate();
       var that = this;
       let queryStr = null;
@@ -396,10 +461,11 @@ export default {
         that.processVaccinationInfoWeek();
       })
       .catch(function (error) {
-        console.log(error);
         if ('response' in error && 'data' in error.response) {
-          that.errorVal = error.response.data.error
+          that.errorVal = error.response.data
           console.log(that.errorVal);
+        } else {
+          that.errorVal = error
         }
       });
     },
@@ -447,13 +513,36 @@ export default {
       if (this.vaccInfoWeek) {
         this.processedVaccInfoWeek = this.vaccInfoWeek.filter((center) => {
           var sessInfo =  center.sessions.filter((sessionInfo) => {
-              if(sessionInfo.available_capacity > 0 && sessionInfo.min_age_limit.toString() === that.age.toString()) {
-                availableCenters.push(center.name);
-                return true;
-              } else {
-                return false;
+              if(sessionInfo.available_capacity > 0) {
+                let flags = [];
+                let selectedAge = that.age.toString();
+
+                if ( (isNaN(that.age) && selectedAge === 'any')
+                    || (sessionInfo.min_age_limit.toString() === selectedAge)) {
+                  flags.push(true);
+                }
+
+                if ( (this.vaccineType === 'any')
+                    || (sessionInfo.vaccine === this.vaccineType) ) {
+                  flags.push(true);
+                }
+
+                if (this.dose === 'all') {
+                  flags.push(true);
+                } else {
+                  if (this.dose === 'D1') {
+                    flags.push(sessionInfo.available_capacity_dose1 > 0)
+                  } else if (this.dose === 'D2') {
+                    flags.push(sessionInfo.available_capacity_dose2 > 0)
+                  }
+                }
+
+                if (flags.every(x => x) && flags.length === 3) {
+                  availableCenters.push(center.name);
+                  return true;
+                }
               }
-            })
+            });
 
             return (sessInfo.length > 0)
         });
@@ -461,7 +550,6 @@ export default {
 
       availableCenters = [...new Set(availableCenters)];
       let availableText = availableCenters.length > 0 ? "Vaccination available in " + availableCenters[0] + (availableCenters.length > 1 ? ` and ${availableCenters.length - 1} other centers` : "") : "";
-      console.log(availableText);
       this.textToSpeak = availableText;
       if(this.speakMsg) this.speakMsg.text = availableText;
     }
