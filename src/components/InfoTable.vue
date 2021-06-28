@@ -5,24 +5,43 @@
           <td>
             <div> <strong>{{item.name}}</strong> </div>
               {{item.address}}, {{item.pincode}}
-              <span v-if="item.fee_type === 'Paid'" style="text-transform: uppercase;color: white; background: #ad0000;">
+              <span  class="tag is-uppercase" :class="item.fee_type === 'Paid' ? 'is-danger' : 'is-success'">
                 {{item.fee_type}}
               </span>
           </td>
           <template v-for="sessionItem in item.sessions" >
             <td v-if="displayCondition(sessionItem)" :key="sessionItem.session_id">
-              <div> <strong>{{ sessionItem.date }}</strong> </div>
-              <div> {{ sessionItem.vaccine }} </div>
-              <div>
-                <small>Age: {{ageRange[sessionItem.min_age_limit.toString()]}} </small>
-                <table>
-                  <tr>
-                    <td><strong>D1 </strong> <br>{{sessionItem.available_capacity_dose1}}</td>
-                    <td :style="{backgroundColor: isAvailable(sessionItem.available_capacity)}">{{sessionItem.available_capacity}}</td>
-                    <td><strong>D2 </strong> <br>{{sessionItem.available_capacity_dose2}}</td>
-                  </tr>
-                </table>
+              <div v-if="sessionItem.available_capacity > 0">
+                <div class="tag mr-2 mb-2"><strong>{{ getReadableDate(sessionItem.date) }}</strong> </div> <br>
+                <span class="tag is-uppercase is-info mr-2 mb-2">{{ sessionItem.vaccine }}</span>
+                <span class="tag is-rounded is-warning">{{ageRange[sessionItem.min_age_limit.toString()]}}</span>
+                <div>
+
+                  <div class="field is-grouped is-grouped-multiline">
+                    <div class="control" >
+                      <div class="tags has-addons" v-if="sessionItem.available_capacity_dose1 > 0">
+                        <span class="tag is-dark">Dose 1</span>
+                        <span class="tag is-success">{{sessionItem.available_capacity_dose1}}</span>
+                      </div>
+                      <!-- <div v-else class="tags has-addons">
+                        <span class="tag is-danger">Dose 1</span>
+                        <span class="tag is-inverted">❌</span>
+                      </div> -->
+                    </div>
+                    <div class="control">
+                      <div class="tags has-addons" v-if="sessionItem.available_capacity_dose2">
+                        <span class="tag is-dark">Dose 2</span>
+                        <span class="tag is-success">{{sessionItem.available_capacity_dose2}}</span>
+                      </div>
+                      <!-- <div v-else class="tags has-addons">
+                        <span class="tag is-danger">Dose 2</span>
+                        <span class="tag is-inverted">❌</span>
+                      </div> -->
+                    </div>
+                  </div>
+                </div>
               </div>
+              <div v-else class="tag is-uppercase is-danger">BOOKED</div>
             </td>
           </template>
         </tr>
@@ -51,6 +70,13 @@ export default {
     isAvailable(availability) {return availability > 0 ? 'lightgreen' : 'lightpink'},
     ageFilter(ageLimit) {
       return (this.selectedAge === "any") ? true : this.selectedAge.toString() === ageLimit.toString();
+    },
+    getReadableDate(inputDate) {
+      let intDate = inputDate.split("-").map((x) => parseInt(x, 10));
+      let date = new Date(intDate[2], intDate[1], intDate[0]);
+      const month = date.toLocaleString('default', { month: 'long' });
+      const currDate = new Date();
+      return `${date.getDate()} ${month} ${currDate.getFullYear() !== date.getFullYear() ? date.getFullYear() : ''}`;
     },
     displayCondition(info) {
       return (!this.isFiltered)

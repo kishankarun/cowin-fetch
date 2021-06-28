@@ -15,13 +15,13 @@
       </p>
     </div>
 
-    <div class="field is-grouped">
-    <p class="control">
-      <label class="label">
-        From date:
-        <input type="date" id="date" name="date" v-model="date" @change="formatDate">
-      </label>
-    </p>
+    <div class="field is-grouped" v-if="false">
+      <p class="control">
+        <label class="label">
+          From date:
+          <input type="date" id="date" name="date" v-model="date" @change="formatDate">
+        </label>
+      </p>
     </div>
 
 
@@ -157,6 +157,14 @@
       </div>
     </div>
 
+    <!-- <div>
+      <table class="table">
+        <tr>
+          <td v-for="(day, i) in sevenDaysFromToday" :key="i"> <span class="tag"> {{ day }} </span> </td>
+        </tr>
+      </table>
+    </div> -->
+
     <div v-if="processedVaccInfoWeek && processedVaccInfoWeek.length > 0">
       <div class="is-size-6 has-text-weight-bold has-background-success" v-if="textToSpeak">{{textToSpeak}}</div>
       <InfoTable :vaccinationInfo="processedVaccInfoWeek" :isFiltered="true" :ageRange="ageRange" :selectedAge="age" :selectedVaccine="vaccineType" :selectedDose="dose"></InfoTable>
@@ -165,14 +173,12 @@
       <div class="is-size-6 has-text-weight-bold has-background-danger">- No slots available -</div>
     </div>
     <br>
-    <span class="label">D1: Dose 1, D2: Dose 2</span>
-
     <hr>
 
-    <div v-if="vaccInfoWeek">
+    <!-- <div v-if="vaccInfoWeek">
       <h1 class="is-size-5 has-text-weight-bold">All slots for all age groups</h1>
       <InfoTable :vaccinationInfo="vaccInfoWeek" :isFiltered="false" :ageRange="ageRange" ></InfoTable>
-    </div>
+    </div> -->
 
   </div>
 </template>
@@ -189,7 +195,7 @@ export default {
   data() {
     return {
       optionType: '',
-      age: 18,
+      age: 'any',
       ageRange: {
         '18': "18-39",
         '40': "40-44",
@@ -211,6 +217,7 @@ export default {
       vaccinationInfo: null,
       processedVaccInfo: null,
       processedVaccInfoWeek: null,
+      sevenDaysFromToday: [],
       initialCountVal: 5,
       count: this.initialCountVal,
       timer: null,
@@ -227,7 +234,8 @@ export default {
   mounted() {
     this.$nextTick(function () {
       const convertedDate = new Date()
-      this.date = `${convertedDate.getFullYear()}-${String(convertedDate.getMonth() + 1).padStart(2, 0)}-${convertedDate.getDate()}`
+      this.date = this.getDateString(convertedDate);
+      this.getNext7DaysFrom(convertedDate);
       this.getStates('mounted');
 
       if (this.notify.voice) {
@@ -285,6 +293,22 @@ export default {
             new Notification(that.textToSpeak);
           }
         });
+      }
+    },
+    getDateString(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1)}-${date.getDate()}`;
+    },
+    getReadableDate(date) {
+      const month = date.toLocaleString('default', { month: 'long' });
+      return `${date.getDate()} ${month}`
+    },
+    getNext7DaysFrom(date) {
+      if (date) {
+        for (let i = 0; i < 7; i++) {
+          var newDate = new Date();
+          newDate.setDate(date.getDate() + i)
+          this.sevenDaysFromToday.push(this.getReadableDate(newDate))
+        }
       }
     },
     speak(flag) {
@@ -446,6 +470,7 @@ export default {
       if (this.optionType === 'state') {
         queryStr = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=${this.selectedDistrict}&date=${this.formattedDate}`
       } else {
+        // const pincodes = ['110011','670303']
         queryStr = `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin?pincode=${this.pinCode}&date=${this.formattedDate}`
       }
 
@@ -531,13 +556,13 @@ export default {
                   flags.push(true);
                 } else {
                   if (this.dose === 'D1') {
-                    flags.push(sessionInfo.available_capacity_dose1 > 0)
+                    flags.push(sessionInfo.available_capacity_dose1 > 0);
                   } else if (this.dose === 'D2') {
-                    flags.push(sessionInfo.available_capacity_dose2 > 0)
+                    flags.push(sessionInfo.available_capacity_dose2 > 0);
                   }
                 }
 
-                if (flags.every(x => x) && flags.length === 3) {
+                if (flags.every(x => x) && flags.length === 3) { // 3 Filters
                   availableCenters.push(center.name);
                   return true;
                 }
@@ -558,8 +583,5 @@ export default {
 </script>
 
 <style scoped>
-table {
-  text-align: center;
-}
 
 </style>
