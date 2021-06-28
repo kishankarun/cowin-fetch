@@ -133,7 +133,7 @@
         <button type="submit" class="button is-info is-small is-rounded" value="Poll" ref="pollButton" @click="startTimer">{{pollButtonText}}</button>
       </div>
       <div>
-        <a href="https://www.cowin.gov.in/home" target="_blank" class="button is-light is-link is-small is-rounded">Book in CoWin</a>
+        <a href="https://selfregistration.cowin.gov.in/" target="_blank" class="button is-light is-link is-small is-rounded">Book in CoWin</a>
       </div>
     </div>
 
