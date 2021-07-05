@@ -72,9 +72,9 @@ export default {
       return (this.selectedAge === "any") ? true : this.selectedAge.toString() === ageLimit.toString();
     },
     getReadableDate(inputDate) {
-      let intDate = inputDate.split("-").map((x) => parseInt(x, 10));
-      let date = new Date(intDate[2], intDate[1], intDate[0]);
-      const month = date.toLocaleString('default', { month: 'long' });
+      let intDate = inputDate.split("-");
+      let date = new Date(`${intDate[2]}-${intDate[1]}-${intDate[0]}`);
+      const month = date.toLocaleString('default', { month: 'short' });
       const currDate = new Date();
       return `${date.getDate()} ${month} ${currDate.getFullYear() !== date.getFullYear() ? date.getFullYear() : ''}`;
     },
